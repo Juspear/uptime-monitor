@@ -1,0 +1,24 @@
+# Copy this file to config.toml and list the sites you want to watch.
+# Telegram credentials are read from environment variables (see .env.example),
+# so this file is safe to commit.
+
+# Settings applied to every site unless the site overrides them.
+[defaults]
+interval = 60               # seconds between checks
+timeout = 10                # request timeout in seconds
+failures_before_alert = 2   # consecutive failures before a DOWN alert
+
+[[sites]]
+name = "Example"
+url = "https://example.com"
+keyword = "Example Domain"  # optional: text that must be on the page
+
+[[sites]]
+name = "GitHub"
+url = "https://github.com"
+interval = 300
+
+[[sites]]
+name = "HTTPBin 204"
+url = "https://httpbin.org/status/204"
+expected_status = 204

@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "uptime-monitor"
+version = "1.0.0"
+description = "Async website uptime monitor with Telegram alerts"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Vladislav Volf" }]
+requires-python = ">=3.11"
+dependencies = ["httpx>=0.27"]
+
+[project.scripts]
+uptime-monitor = "uptime_monitor.__main__:main"
+
+[tool.setuptools]
+packages = ["uptime_monitor"]
