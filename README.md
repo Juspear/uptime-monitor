@@ -8,11 +8,13 @@ A lightweight asynchronous website uptime monitor that sends alerts to Telegram.
 
 I build websites for freelance clients and needed to know when one of them goes down **before the client notices**. Paid monitoring services are overkill for a handful of small sites, so I wrote my own: one Python process, one config file, one dependency.
 
-```
-🔴 Client Shop is DOWN
-https://shop.example.com
-Reason: expected HTTP 200, got 502
+<p align="center">
+  <img src="docs/telegram-alert.png" alt="Telegram alert sent by uptime-monitor" width="600">
+</p>
 
+When the site comes back, you get a recovery message:
+
+```
 🟢 Client Shop is back UP
 https://shop.example.com
 Downtime: 4m 30s
