@@ -1,0 +1,11 @@
+# never send secrets or local files into the image build
+.env
+config.toml
+.git
+.github
+tests
+docs
+__pycache__/
+*.py[cod]
+.venv/
+venv/

@@ -90,15 +90,16 @@ interval = 30
 | `failures_before_alert` | `2` | Consecutive failures before alerting |
 | `ssl_expiry_warning_days` | `14` | Warn this many days before the SSL certificate expires (`0` = off, `https://` only) |
 
-## Running with Docker
+## Running 24/7 with Docker
 
 ```bash
-docker build -t uptime-monitor .
-docker run -d --restart unless-stopped \
-  -v "$(pwd)/config.toml:/app/config.toml:ro" \
-  --env-file .env \
-  uptime-monitor
+cp config.example.toml config.toml   # your sites
+cp .env.example .env                 # your Telegram credentials
+docker compose up -d --build
 ```
+
+The container restarts on crashes and reboots, and logs are rotated automatically.
+Step-by-step guide for a fresh VPS: [docs/DEPLOY.md](docs/DEPLOY.md).
 
 ## How it works
 

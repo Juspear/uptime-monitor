@@ -1,0 +1,13 @@
+services:
+  uptime-monitor:
+    build: .
+    container_name: uptime-monitor
+    restart: unless-stopped
+    env_file: .env                      # TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
+    volumes:
+      - ./config.toml:/app/config.toml:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"                 # keep logs from filling the disk
+        max-file: "3"

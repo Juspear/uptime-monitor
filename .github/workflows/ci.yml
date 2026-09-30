@@ -18,3 +18,15 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: pip install -r requirements.txt
       - run: python -m unittest -v
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t uptime-monitor .
+      - name: Smoke test
+        run: |
+          cp config.example.toml config.toml
+          docker run --rm -v "$PWD/config.toml:/app/config.toml:ro" uptime-monitor \
+            python -c "from uptime_monitor.config import load_config; print(len(load_config('/app/config.toml').sites), 'sites OK')"
