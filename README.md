@@ -137,13 +137,6 @@ python -m unittest -v
 
 The tests use `httpx.MockTransport`, so they never touch the network. They cover the checker, config validation, the alerting state machine, SSL expiry warnings, the monitor loop and the Telegram notifier.
 
-## Roadmap
-
-- [x] SSL certificate expiry warnings
-- [ ] Store check history in SQLite
-- [ ] Daily uptime summary in Telegram
-- [ ] Simple web dashboard
-
 ## License
 
 [MIT](LICENSE)
