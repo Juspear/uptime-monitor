@@ -50,9 +50,10 @@ The container restarts automatically after crashes and server reboots (`restart:
 | Check it is running | `docker compose ps` |
 | Apply config changes | `docker compose restart` |
 | Update to the latest version | `git pull && docker compose up -d --build` |
+| Uptime report | `docker compose exec uptime-monitor python -m uptime_monitor -c /app/config.toml --stats` |
 | Stop | `docker compose down` |
 
-Log times are in UTC.
+Log times are in UTC. Check history is kept in the `uptime-data` Docker volume, so it survives `down` / `up` and image rebuilds.
 
 ## Quick test
 

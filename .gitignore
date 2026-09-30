@@ -2,6 +2,12 @@
 .env
 config.toml
 
+# check history
+data/
+*.db
+*.db-wal
+*.db-shm
+
 # python
 __pycache__/
 *.py[cod]

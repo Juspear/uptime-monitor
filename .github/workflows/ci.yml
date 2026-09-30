@@ -25,8 +25,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build image
         run: docker build -t uptime-monitor .
-      - name: Smoke test
+      - name: Smoke test (config loads, history is writable)
         run: |
           cp config.example.toml config.toml
-          docker run --rm -v "$PWD/config.toml:/app/config.toml:ro" uptime-monitor \
-            python -c "from uptime_monitor.config import load_config; print(len(load_config('/app/config.toml').sites), 'sites OK')"
+          docker volume create uptime-data
+          docker run --rm -v "$PWD/config.toml:/app/config.toml:ro" -v uptime-data:/app/data \
+            uptime-monitor python -m uptime_monitor --config /app/config.toml --stats
+          docker run --rm -v uptime-data:/app/data uptime-monitor ls -l /app/data/uptime.db

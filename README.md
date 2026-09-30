@@ -30,6 +30,7 @@ Response time: 212 ms
 - **Content checks.** Optionally require a keyword on the page, which catches "200 OK but the page is broken" cases.
 - **Custom expected status** (e.g. `204` for health endpoints).
 - **One-shot mode.** `--once` checks everything (including certificates), prints a report and exits with code `1` if something is wrong, so it is handy for cron or CI.
+- **Check history in SQLite.** Every check is stored locally, so a restart does not cause duplicate alerts or wrong downtime, and `--stats` shows uptime for the last 24h / 7d / 30d. Old records are cleaned up automatically.
 - **Graceful shutdown** on Ctrl+C / SIGTERM.
 - **Safe config.** Secrets live in environment variables, never in the config file.
 
@@ -43,6 +44,7 @@ pip install -r requirements.txt
 cp config.example.toml config.toml   # then edit the list of sites
 python -m uptime_monitor --once      # quick check
 python -m uptime_monitor             # run continuously
+python -m uptime_monitor --stats     # uptime report from the stored history
 ```
 
 Without Telegram credentials, alerts are printed to the console.
@@ -90,6 +92,23 @@ interval = 30
 | `failures_before_alert` | `2` | Consecutive failures before alerting |
 | `ssl_expiry_warning_days` | `14` | Warn this many days before the SSL certificate expires (`0` = off, `https://` only) |
 
+History settings live in their own section:
+
+```toml
+[storage]
+path = "data/uptime.db"   # SQLite file; "" disables history
+retention_days = 90       # older checks are deleted once a day
+```
+
+Example `--stats` output:
+
+```
+site             24h       7d      30d  avg ms  max ms  incidents(24h)
+----------------------------------------------------------------------
+Client Shop  100.00%   99.86%   99.93%     212     640               0
+API health    99.31%   99.90%   99.97%      48     311               1
+```
+
 ## Running 24/7 with Docker
 
 ```bash
@@ -128,7 +147,8 @@ Step-by-step guide for a fresh VPS: [docs/DEPLOY.md](docs/DEPLOY.md).
 | `state.py` | Per-site state machine that decides when to alert |
 | `ssl_check.py` | Read a site's TLS certificate expiry date |
 | `notifier.py` | Format messages and deliver them |
-| `monitor.py` | Schedule concurrent checks, graceful shutdown |
+| `storage.py` | SQLite check history: failure streaks, uptime stats, pruning |
+| `monitor.py` | Schedule concurrent checks, restore state after restart, graceful shutdown |
 
 ## Tests
 
@@ -136,7 +156,7 @@ Step-by-step guide for a fresh VPS: [docs/DEPLOY.md](docs/DEPLOY.md).
 python -m unittest -v
 ```
 
-The tests use `httpx.MockTransport`, so they never touch the network. They cover the checker, config validation, the alerting state machine, SSL expiry warnings, the monitor loop and the Telegram notifier.
+The tests use `httpx.MockTransport`, so they never touch the network. They cover the checker, config validation, the alerting state machine, SSL expiry warnings, check history (including a restart in the middle of an outage), the monitor loop and the Telegram notifier.
 
 ## License
 

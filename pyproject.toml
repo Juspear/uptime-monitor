@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "uptime-monitor"
-version = "1.1.0"
+version = "1.2.0"
 description = "Async website uptime monitor with Telegram alerts"
 readme = "README.md"
 license = { text = "MIT" }

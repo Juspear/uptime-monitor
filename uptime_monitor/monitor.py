@@ -18,11 +18,13 @@ from .config import Config, Site
 from .notifier import Notifier, format_event
 from .ssl_check import fetch_cert_expiry
 from .state import SiteState
+from .storage import History
 
 log = logging.getLogger(__name__)
 
-USER_AGENT = "uptime-monitor/1.1 (+https://github.com/Juspear/uptime-monitor)"
+USER_AGENT = "uptime-monitor/1.2 (+https://github.com/Juspear/uptime-monitor)"
 SSL_CHECK_INTERVAL = 6 * 3600  # certificates change rarely, no need to check often
+PRUNE_INTERVAL = 24 * 3600     # delete old history once a day
 
 CertFetcher = Callable[[str, float], Awaitable[datetime]]
 
@@ -41,11 +43,15 @@ class Monitor:
         client: httpx.AsyncClient,
         notifier: Notifier,
         cert_fetcher: CertFetcher = fetch_cert_expiry,
+        history: History | None = None,
+        clock: Callable[[], float] = time.time,
     ):
         self.config = config
         self.client = client
         self.notifier = notifier
         self.cert_fetcher = cert_fetcher
+        self.history = history
+        self.clock = clock
         self.states = {
             site.name: SiteState(site.name, site.failures_before_alert) for site in config.sites
         }
@@ -55,8 +61,15 @@ class Monitor:
 
     async def check_once(self, site: Site) -> CheckResult:
         result = await check_site(self.client, site)
+        now = self.clock()
         state = self.states[site.name]
-        event = state.update(result, now=time.monotonic())
+        event = state.update(result, now=now)
+
+        if self.history is not None:
+            try:
+                await self.history.record(site.name, now, result)
+            except Exception:  # a disk problem must not stop monitoring
+                log.exception("failed to save check result for %s", site.name)
 
         if result.ok:
             log.info("%-20s UP    %4d  %6.0f ms", site.name, result.status, result.latency_ms)
@@ -99,6 +112,29 @@ class Monitor:
             except asyncio.TimeoutError:
                 pass
 
+    async def restore_state(self) -> None:
+        """After a restart, continue from the stored history instead of starting clean.
+
+        Without this, a site that was already down would get a second DOWN alert,
+        and its eventual RECOVERED message would report the wrong downtime.
+        """
+        if self.history is None:
+            return
+        for site in self.config.sites:
+            streak = await self.history.failure_streak(site.name)
+            state = self.states[site.name]
+            state.restore(streak.count, streak.started_at)
+            if state.is_down:
+                log.info("%-20s was DOWN before restart (%d failed checks)", site.name, streak.count)
+
+    async def prune_history(self) -> None:
+        if self.history is None:
+            return
+        cutoff = self.clock() - self.config.storage.retention_days * 86400
+        deleted = await self.history.prune(cutoff)
+        if deleted:
+            log.info("history: removed %d checks older than %d days", deleted, self.config.storage.retention_days)
+
     def stop(self) -> None:
         self._stop.set()
 
@@ -110,7 +146,11 @@ class Monitor:
             except (NotImplementedError, RuntimeError):
                 pass  # e.g. Windows, or not in the main thread
 
+        await self.restore_state()
+
         tasks = []
+        if self.history is not None:
+            tasks.append(asyncio.create_task(self._every(PRUNE_INTERVAL, self.prune_history, "prune")))
         for site in self.config.sites:
             tasks.append(asyncio.create_task(
                 self._every(site.interval, lambda s=site: self.check_once(s), f"check:{site.name}")))

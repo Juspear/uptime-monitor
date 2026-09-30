@@ -35,9 +35,16 @@ class TelegramSettings:
 
 
 @dataclass(frozen=True)
+class StorageSettings:
+    path: str | None = "data/uptime.db"  # None = history disabled
+    retention_days: int = 90
+
+
+@dataclass(frozen=True)
 class Config:
     sites: list[Site]
     telegram: TelegramSettings | None
+    storage: StorageSettings = StorageSettings()
 
 
 _SITE_FIELDS = {
@@ -81,6 +88,19 @@ def _telegram_from_env() -> TelegramSettings | None:
     return None
 
 
+def _parse_storage(raw: dict) -> StorageSettings:
+    unknown = set(raw) - {"path", "retention_days"}
+    if unknown:
+        raise ConfigError(f"[storage]: unknown field(s): {', '.join(sorted(unknown))}")
+    path = raw.get("path", StorageSettings.path)
+    if not isinstance(path, str):
+        raise ConfigError("[storage]: path must be a string")
+    retention = raw.get("retention_days", StorageSettings.retention_days)
+    if not isinstance(retention, int) or retention < 1:
+        raise ConfigError("[storage]: retention_days must be a positive integer")
+    return StorageSettings(path=path or None, retention_days=retention)
+
+
 def parse_config(data: dict) -> Config:
     defaults = data.get("defaults", {})
     unknown_defaults = set(defaults) - (_SITE_FIELDS - {"name", "url"})
@@ -98,7 +118,8 @@ def parse_config(data: dict) -> Config:
     if duplicates:
         raise ConfigError(f"duplicate site name(s): {', '.join(sorted(duplicates))}")
 
-    return Config(sites=sites, telegram=_telegram_from_env())
+    storage = _parse_storage(data.get("storage", {}))
+    return Config(sites=sites, telegram=_telegram_from_env(), storage=storage)
 
 
 def load_config(path: str | Path) -> Config:

@@ -81,6 +81,12 @@ class SiteState:
             self.ssl_warned = False  # certificate was renewed, warn again next time
         return None
 
+    def restore(self, consecutive_failures: int, first_failure_at: float | None) -> None:
+        """Rebuild the state after a restart from the stored failure streak."""
+        self.consecutive_failures = consecutive_failures
+        self.down_since = first_failure_at if consecutive_failures else None
+        self.is_down = consecutive_failures >= self.failures_before_alert
+
     @property
     def uptime_percent(self) -> float:
         if self.checks_total == 0:

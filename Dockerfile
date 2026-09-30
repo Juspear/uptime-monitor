@@ -7,7 +7,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY uptime_monitor ./uptime_monitor
 
 # run as a non-root user
-RUN useradd --create-home monitor
+RUN useradd --create-home monitor && mkdir /app/data && chown monitor /app/data
 USER monitor
 
 ENV PYTHONUNBUFFERED=1

@@ -9,6 +9,12 @@ timeout = 10                # request timeout in seconds
 failures_before_alert = 2   # consecutive failures before a DOWN alert
 ssl_expiry_warning_days = 14  # warn this many days before the SSL certificate expires (0 = off)
 
+# Check history (SQLite). Used to survive restarts without duplicate alerts
+# and for `--stats`. Set path = "" to disable.
+[storage]
+path = "data/uptime.db"
+retention_days = 90
+
 [[sites]]
 name = "Example"
 url = "https://example.com"

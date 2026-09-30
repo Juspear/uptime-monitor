@@ -6,8 +6,12 @@ services:
     env_file: .env                      # TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
     volumes:
       - ./config.toml:/app/config.toml:ro
+      - uptime-data:/app/data           # check history survives container rebuilds
     logging:
       driver: json-file
       options:
         max-size: "10m"                 # keep logs from filling the disk
         max-file: "3"
+
+volumes:
+  uptime-data:
