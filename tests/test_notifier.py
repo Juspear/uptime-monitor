@@ -28,6 +28,20 @@ class FormatTest(unittest.TestCase):
         self.assertIn("back UP", text)
         self.assertIn("5m 0s", text)
 
+    def test_ssl_message(self):
+        from datetime import datetime, timezone
+        event = Event(EventType.SSL_EXPIRING, "Shop", ssl_days_left=7,
+                      ssl_expires_at=datetime(2026, 10, 7, 12, 0, tzinfo=timezone.utc))
+        text = format_event(event, "https://shop.com")
+        self.assertIn("expires in 7 days", text)
+        self.assertIn("2026-10-07 12:00 UTC", text)
+
+    def test_ssl_message_singular_and_today(self):
+        one = Event(EventType.SSL_EXPIRING, "Shop", ssl_days_left=1)
+        zero = Event(EventType.SSL_EXPIRING, "Shop", ssl_days_left=0)
+        self.assertIn("in 1 day\n", format_event(one, "https://shop.com"))
+        self.assertIn("expires today", format_event(zero, "https://shop.com"))
+
     def test_html_is_escaped(self):
         event = Event(EventType.DOWN, "<script>", CheckResult(ok=False, error="a < b"))
         text = format_event(event, "https://x.com")

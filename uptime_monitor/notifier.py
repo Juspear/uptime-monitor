@@ -33,6 +33,14 @@ def format_event(event: Event, url: str) -> str:
         reason = html.escape(event.result.error or "unknown error")
         return f"🔴 <b>{name}</b> is DOWN\n{url}\nReason: {reason}"
 
+    if event.type is EventType.SSL_EXPIRING:
+        days = event.ssl_days_left
+        when = "today" if days <= 0 else f"in {days} day{'s' if days != 1 else ''}"
+        text = f"⚠️ <b>{name}</b>: SSL certificate expires {when}\n{url}"
+        if event.ssl_expires_at is not None:
+            text += f"\nExpires: {event.ssl_expires_at:%Y-%m-%d %H:%M} UTC"
+        return text
+
     text = f"🟢 <b>{name}</b> is back UP\n{url}"
     if event.downtime_seconds is not None:
         text += f"\nDowntime: {format_duration(event.downtime_seconds)}"

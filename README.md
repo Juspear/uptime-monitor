@@ -26,9 +26,11 @@ Response time: 212 ms
 - **Async checks.** All sites are checked concurrently with `asyncio` + `httpx`, each on its own interval.
 - **No false alarms.** A site is reported down only after N failures in a row (configurable), and you get exactly one alert per incident.
 - **Recovery alerts** with total downtime and response time.
+- **SSL expiry warnings.** Get a heads-up N days before a site's certificate expires (14 by default), once per certificate.
 - **Content checks.** Optionally require a keyword on the page, which catches "200 OK but the page is broken" cases.
 - **Custom expected status** (e.g. `204` for health endpoints).
-- **One-shot mode.** `--once` checks everything, prints a report and exits with code `1` if something is down, so it is handy for cron or CI.
+- **One-shot mode.** `--once` checks everything (including certificates), prints a report and exits with code `1` if something is wrong, so it is handy for cron or CI.
+- **Graceful shutdown** on Ctrl+C / SIGTERM.
 - **Safe config.** Secrets live in environment variables, never in the config file.
 
 ## Quick start
@@ -63,6 +65,7 @@ export TELEGRAM_CHAT_ID="123456789"
 interval = 60               # seconds between checks
 timeout = 10                # request timeout, seconds
 failures_before_alert = 2   # failures in a row before a DOWN alert
+ssl_expiry_warning_days = 14  # warn before the certificate expires (0 = off)
 
 [[sites]]
 name = "Client Shop"
@@ -85,6 +88,7 @@ interval = 30
 | `expected_status` | `200` | HTTP status that counts as "up" |
 | `keyword` | none | Text that must appear in the response |
 | `failures_before_alert` | `2` | Consecutive failures before alerting |
+| `ssl_expiry_warning_days` | `14` | Warn this many days before the SSL certificate expires (`0` = off, `https://` only) |
 
 ## Running with Docker
 
@@ -110,6 +114,7 @@ docker run -d --restart unless-stopped \
                 │  SiteState   │  counts failures, detects DOWN / RECOVERED transitions
                 └──────┬───────┘
                        │ only on a state change
+                       │   (+ a separate SSL expiry check every 6 hours)
                 ┌──────▼───────┐
                 │   Notifier   │  Telegram (or console)
                 └──────────────┘
@@ -120,8 +125,9 @@ docker run -d --restart unless-stopped \
 | `config.py` | Load and validate TOML config, read secrets from env |
 | `checker.py` | Perform one HTTP check and classify the result |
 | `state.py` | Per-site state machine that decides when to alert |
+| `ssl_check.py` | Read a site's TLS certificate expiry date |
 | `notifier.py` | Format messages and deliver them |
-| `monitor.py` | Schedule concurrent checks |
+| `monitor.py` | Schedule concurrent checks, graceful shutdown |
 
 ## Tests
 
@@ -129,11 +135,11 @@ docker run -d --restart unless-stopped \
 python -m unittest -v
 ```
 
-The tests use `httpx.MockTransport`, so they never touch the network. They cover the checker, config validation, the alerting state machine and the Telegram notifier.
+The tests use `httpx.MockTransport`, so they never touch the network. They cover the checker, config validation, the alerting state machine, SSL expiry warnings, the monitor loop and the Telegram notifier.
 
 ## Roadmap
 
-- [ ] SSL certificate expiry warnings
+- [x] SSL certificate expiry warnings
 - [ ] Store check history in SQLite
 - [ ] Daily uptime summary in Telegram
 - [ ] Simple web dashboard

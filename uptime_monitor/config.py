@@ -21,6 +21,11 @@ class Site:
     expected_status: int = 200      # HTTP status that counts as "up"
     keyword: str | None = None      # text that must appear in the response body
     failures_before_alert: int = 2  # consecutive failures before a "down" alert
+    ssl_expiry_warning_days: int = 14  # warn when the certificate expires sooner (0 = off)
+
+    @property
+    def checks_ssl(self) -> bool:
+        return self.url.startswith("https://") and self.ssl_expiry_warning_days > 0
 
 
 @dataclass(frozen=True)
@@ -38,6 +43,7 @@ class Config:
 _SITE_FIELDS = {
     "name", "url", "interval", "timeout",
     "expected_status", "keyword", "failures_before_alert",
+    "ssl_expiry_warning_days",
 }
 
 
@@ -62,6 +68,8 @@ def _parse_site(raw: dict, defaults: dict, index: int) -> Site:
         raise ConfigError(f"{site.name}: timeout must be positive")
     if site.failures_before_alert < 1:
         raise ConfigError(f"{site.name}: failures_before_alert must be >= 1")
+    if site.ssl_expiry_warning_days < 0:
+        raise ConfigError(f"{site.name}: ssl_expiry_warning_days must be >= 0")
     return site
 
 

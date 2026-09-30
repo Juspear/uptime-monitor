@@ -39,14 +39,27 @@ async def run(args: argparse.Namespace) -> int:
         monitor = Monitor(config, client, notifier)
 
         if args.once:
-            results = await monitor.run_once()
-            width = max(len(name) for name in results)
-            for name, r in results.items():
+            reports = await monitor.run_once()
+            sites = {s.name: s for s in config.sites}
+            width = max(len(name) for name in reports)
+            problems = 0
+            for name, rep in reports.items():
+                r = rep.result
                 if r.ok:
-                    print(f"✅ {name:<{width}}  {r.status}  {r.latency_ms:.0f} ms")
+                    line = f"✅ {name:<{width}}  {r.status}  {r.latency_ms:5.0f} ms"
                 else:
-                    print(f"❌ {name:<{width}}  {r.error}")
-            return 0 if all(r.ok for r in results.values()) else 1
+                    line = f"❌ {name:<{width}}  {r.error}"
+                    problems += 1
+
+                if rep.ssl_days_left is not None:
+                    line += f"  | SSL: {rep.ssl_days_left} days left"
+                    if rep.ssl_days_left <= sites[name].ssl_expiry_warning_days:
+                        line += " ⚠️"
+                        problems += 1
+                elif rep.ssl_error and r.ok:
+                    line += f"  | SSL: could not read ({rep.ssl_error})"
+                print(line)
+            return 0 if problems == 0 else 1
 
         await monitor.run_forever()
     return 0
