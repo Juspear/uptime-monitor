@@ -2,7 +2,6 @@
 
 [![CI](https://github.com/Juspear/uptime-monitor/actions/workflows/ci.yml/badge.svg)](https://github.com/Juspear/uptime-monitor/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
 
 A lightweight asynchronous website uptime monitor that sends alerts to Telegram.
 
@@ -158,6 +157,3 @@ python -m unittest -v
 
 The tests use `httpx.MockTransport`, so they never touch the network. They cover the checker, config validation, the alerting state machine, SSL expiry warnings, check history (including a restart in the middle of an outage), the monitor loop and the Telegram notifier.
 
-## License
-
-[MIT](LICENSE)
